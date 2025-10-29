@@ -1,4 +1,6 @@
+from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models import UniqueConstraint
 
 from modern_railway import settings
 
@@ -14,14 +16,10 @@ class Station(models.Model):
 
 class Route(models.Model):
     source = models.ForeignKey(
-        Station,
-        on_delete=models.CASCADE,
-        related_name="departures"
+        Station, on_delete=models.CASCADE, related_name="departures"
     )
     destination = models.ForeignKey(
-        Station,
-        on_delete=models.CASCADE,
-        related_name="arrivals"
+        Station, on_delete=models.CASCADE, related_name="arrivals"
     )
     distance = models.IntegerField()
 
@@ -35,6 +33,10 @@ class Crew(models.Model):
 
     def __str__(self):
         return self.first_name + " " + self.last_name
+
+    @property
+    def full_name(self):
+        return f"{self.first_name} {self.last_name}"
 
 
 class Trip(models.Model):
@@ -64,6 +66,10 @@ class Train(models.Model):
     def __str__(self):
         return f"{self.name} ({self.train_type})"
 
+    @property
+    def capacity(self):
+        return self.cargo_num * self.places_in_cargo
+
 
 class Order(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
@@ -79,8 +85,36 @@ class Order(models.Model):
 class Ticket(models.Model):
     cargo = models.IntegerField()
     seat = models.IntegerField()
-    trip = models.ForeignKey(Trip, on_delete=models.CASCADE)
-    order = models.ForeignKey("Order", on_delete=models.CASCADE, related_name="tickets")
+    trip = models.ForeignKey(
+        "Trip",
+        on_delete=models.CASCADE,
+        related_name="tickets"
+    )
+    order = models.ForeignKey(
+        "Order",
+        on_delete=models.CASCADE,
+        related_name="tickets"
+    )
+
+    class Meta:
+        constraints = [
+            UniqueConstraint(
+                fields=["seat", "trip"],
+                name="unique_ticket_seat_trip"
+            )
+        ]
 
     def __str__(self):
-        return f"Ticket {self.id} ({self.trip})"
+        return f"{self.trip} — seat {self.seat}"
+
+    def clean(self):
+        max_seats = self.trip.train.capacity
+
+        if not (1 <= self.seat <= max_seats):
+            raise ValidationError({
+                "seat": f"Seat must be in range [1, {max_seats}]"
+            })
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)

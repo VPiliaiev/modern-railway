@@ -10,54 +10,76 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('railway', '0001_initial'),
+        ("railway", "0001_initial"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='order',
-            name='user',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL),
+            model_name="order",
+            name="user",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL
+            ),
         ),
         migrations.AddField(
-            model_name='route',
-            name='destination',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='arrivals', to='railway.station'),
+            model_name="route",
+            name="destination",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="arrivals",
+                to="railway.station",
+            ),
         ),
         migrations.AddField(
-            model_name='route',
-            name='source',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='departures', to='railway.station'),
+            model_name="route",
+            name="source",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="departures",
+                to="railway.station",
+            ),
         ),
         migrations.AddField(
-            model_name='ticket',
-            name='order',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='tickets', to='railway.order'),
+            model_name="ticket",
+            name="order",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="tickets",
+                to="railway.order",
+            ),
         ),
         migrations.AddField(
-            model_name='train',
-            name='train_type',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='railway.traintype'),
+            model_name="train",
+            name="train_type",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE, to="railway.traintype"
+            ),
         ),
         migrations.AddField(
-            model_name='trip',
-            name='crew',
-            field=models.ManyToManyField(related_name='trips', to='railway.crew'),
+            model_name="trip",
+            name="crew",
+            field=models.ManyToManyField(related_name="trips", to="railway.crew"),
         ),
         migrations.AddField(
-            model_name='trip',
-            name='route',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='railway.route'),
+            model_name="trip",
+            name="route",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE, to="railway.route"
+            ),
         ),
         migrations.AddField(
-            model_name='trip',
-            name='train',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='railway.train'),
+            model_name="trip",
+            name="train",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE, to="railway.train"
+            ),
         ),
         migrations.AddField(
-            model_name='ticket',
-            name='trip',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='railway.trip'),
+            model_name="ticket",
+            name="trip",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE, to="railway.trip"
+            ),
         ),
     ]
