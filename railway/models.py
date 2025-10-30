@@ -97,22 +97,35 @@ class Ticket(models.Model):
     )
 
     class Meta:
-        constraints = [
-            UniqueConstraint(
-                fields=["seat", "trip"],
-                name="unique_ticket_seat_trip"
-            )
-        ]
+        ordering = ("cargo", "seat")
 
     def __str__(self):
         return f"{self.trip} — seat {self.seat}"
 
-    def clean(self):
-        max_seats = self.trip.train.capacity
+    @staticmethod
+    def validate_cargo(cargo: int, train, error_to_raise):
+        if not (1 <= cargo <= train.cargo_num):
+            raise error_to_raise({
+                "cargo": f"Cargo must be in range [1, {train.cargo_num}]"
+            })
 
-        if not (1 <= self.seat <= max_seats):
+    @staticmethod
+    def validate_seat(seat: int, train, error_to_raise):
+        if not (1 <= seat <= train.places_in_cargo):
+            raise error_to_raise({
+                "seat": f"Seat must be in range [1, {train.places_in_cargo}]"
+            })
+
+    def clean(self):
+        train = self.trip.train
+        Ticket.validate_cargo(self.cargo, train, ValidationError)
+        Ticket.validate_seat(self.seat, train, ValidationError)
+
+        if Ticket.objects.filter(
+            trip=self.trip, cargo=self.cargo, seat=self.seat
+        ).exists():
             raise ValidationError({
-                "seat": f"Seat must be in range [1, {max_seats}]"
+                "seat": f"Seat {self.seat} in cargo {self.cargo} for this trip is already booked."
             })
 
     def save(self, *args, **kwargs):

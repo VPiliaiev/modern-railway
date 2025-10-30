@@ -74,6 +74,26 @@ class TripRetrieveSerializer(TripSerializer):
 
 
 class TicketSerializer(serializers.ModelSerializer):
+    def validate(self, attrs):
+        trip = attrs.get("trip")
+
+        if not trip:
+            return attrs
+
+        train = trip.train
+
+        Ticket.validate_cargo(attrs["cargo"], train, serializers.ValidationError)
+        Ticket.validate_seat(attrs["seat"], train, serializers.ValidationError)
+
+        if Ticket.objects.filter(
+                trip=trip, cargo=attrs["cargo"], seat=attrs["seat"]
+        ).exists():
+            raise serializers.ValidationError({
+                "seat": f"Seat {attrs['seat']} in cargo {attrs['cargo']} is already booked for this trip."
+            })
+
+        return attrs
+
     class Meta:
         model = Ticket
         fields = ("id", "cargo", "seat", "trip")
