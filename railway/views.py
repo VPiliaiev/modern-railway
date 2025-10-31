@@ -1,3 +1,4 @@
+from django.utils.dateparse import parse_date
 from rest_framework import viewsets
 from railway.models import (
     Station,
@@ -46,7 +47,37 @@ class TripViewSet(viewsets.ModelViewSet):
     def get_serializer_class(self):
         if self.action == "list":
             return TripListSerializer
-        return TripRetrieveSerializer
+        elif self.action == "retrieve":
+            return TripRetrieveSerializer
+        return TripSerializer
+
+    @staticmethod
+    def _param_to_str(query_string):
+        return [s.strip() for s in query_string.split(",") if s.strip()]
+
+    @staticmethod
+    def _param_to_date(query_string):
+        return parse_date(query_string)
+
+    def get_queryset(self):
+        queryset = self.queryset
+
+        source = self.request.query_params.get("source")
+        destination = self.request.query_params.get("destination")
+        date = self.request.query_params.get("date")
+
+        if source:
+            queryset = queryset.filter(route__source__name__icontains=source.strip())
+
+        if destination:
+            queryset = queryset.filter(route__destination__name__icontains=destination.strip())
+
+        if date:
+            date_parsed = self._param_to_date(date)
+            if date_parsed:
+                queryset = queryset.filter(departure_time__date=date_parsed)
+
+        return queryset.order_by("departure_time")
 
 
 class TrainTypeViewSet(viewsets.ModelViewSet):
