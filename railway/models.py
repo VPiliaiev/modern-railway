@@ -1,6 +1,5 @@
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models import UniqueConstraint
 
 from modern_railway import settings
 
@@ -85,16 +84,8 @@ class Order(models.Model):
 class Ticket(models.Model):
     cargo = models.IntegerField()
     seat = models.IntegerField()
-    trip = models.ForeignKey(
-        "Trip",
-        on_delete=models.CASCADE,
-        related_name="tickets"
-    )
-    order = models.ForeignKey(
-        "Order",
-        on_delete=models.CASCADE,
-        related_name="tickets"
-    )
+    trip = models.ForeignKey("Trip", on_delete=models.CASCADE, related_name="tickets")
+    order = models.ForeignKey("Order", on_delete=models.CASCADE, related_name="tickets")
 
     class Meta:
         ordering = ("cargo", "seat")
@@ -105,16 +96,16 @@ class Ticket(models.Model):
     @staticmethod
     def validate_cargo(cargo: int, train, error_to_raise):
         if not (1 <= cargo <= train.cargo_num):
-            raise error_to_raise({
-                "cargo": f"Cargo must be in range [1, {train.cargo_num}]"
-            })
+            raise error_to_raise(
+                {"cargo": f"Cargo must be in range [1, {train.cargo_num}]"}
+            )
 
     @staticmethod
     def validate_seat(seat: int, train, error_to_raise):
         if not (1 <= seat <= train.places_in_cargo):
-            raise error_to_raise({
-                "seat": f"Seat must be in range [1, {train.places_in_cargo}]"
-            })
+            raise error_to_raise(
+                {"seat": f"Seat must be in range [1, {train.places_in_cargo}]"}
+            )
 
     def clean(self):
         train = self.trip.train
@@ -124,9 +115,11 @@ class Ticket(models.Model):
         if Ticket.objects.filter(
             trip=self.trip, cargo=self.cargo, seat=self.seat
         ).exists():
-            raise ValidationError({
-                "seat": f"Seat {self.seat} in cargo {self.cargo} for this trip is already booked."
-            })
+            raise ValidationError(
+                {
+                    "seat": f"Seat {self.seat} in cargo {self.cargo} for this trip is already booked."
+                }
+            )
 
     def save(self, *args, **kwargs):
         self.full_clean()

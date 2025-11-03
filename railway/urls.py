@@ -8,7 +8,6 @@ from railway.views import (
     TripViewSet,
     TrainTypeViewSet,
     TrainViewSet,
-    TicketViewSet,
     OrderViewSet,
 )
 
@@ -20,8 +19,5 @@ router.register("crews", CrewViewSet)
 router.register("trips", TripViewSet)
 router.register("train-types", TrainTypeViewSet)
 router.register("trains", TrainViewSet)
-router.register("tickets", TicketViewSet)
 router.register("orders", OrderViewSet)
-urlpatterns = [
-    path("", include(router.urls))
-]
+urlpatterns = [path("", include(router.urls))]

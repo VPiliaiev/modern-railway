@@ -1,15 +1,7 @@
+from django.db.models import Prefetch, Count, F
 from django.utils.dateparse import parse_date
 from rest_framework import viewsets
-from railway.models import (
-    Station,
-    Route,
-    Crew,
-    Trip,
-    TrainType,
-    Train,
-    Order,
-    Ticket
-)
+from railway.models import Station, Route, Crew, Trip, TrainType, Train, Order, Ticket
 from railway.serializers import (
     StationSerializer,
     RouteSerializer,
@@ -18,7 +10,14 @@ from railway.serializers import (
     TrainTypeSerializer,
     TrainSerializer,
     OrderSerializer,
-    TicketSerializer, TripListSerializer, TripRetrieveSerializer
+    TripListSerializer,
+    TripRetrieveSerializer,
+    TrainListSerializer,
+    TrainRetrieveSerializer,
+    StationRetrieveSerializer,
+    StationListSerializer,
+    RouteListSerializer,
+    RouteRetrieveSerializer,
 )
 
 
@@ -26,10 +25,24 @@ class StationViewSet(viewsets.ModelViewSet):
     queryset = Station.objects.all()
     serializer_class = StationSerializer
 
+    def get_serializer_class(self):
+        if self.action == "list":
+            return StationListSerializer
+        elif self.action == "retrieve":
+            return StationRetrieveSerializer
+        return StationSerializer
+
 
 class RouteViewSet(viewsets.ModelViewSet):
-    queryset = Route.objects.all()
+    queryset = Route.objects.select_related("source", "destination")
     serializer_class = RouteSerializer
+
+    def get_serializer_class(self):
+        if self.action == "list":
+            return RouteListSerializer
+        elif self.action == "retrieve":
+            return RouteRetrieveSerializer
+        return RouteSerializer
 
 
 class CrewViewSet(viewsets.ModelViewSet):
@@ -38,11 +51,16 @@ class CrewViewSet(viewsets.ModelViewSet):
 
 
 class TripViewSet(viewsets.ModelViewSet):
-    queryset = Trip.objects.all().select_related(
-        "train",
-        "route__source",
-        "route__destination"
-    ).prefetch_related("crew")
+    queryset = Trip.objects.select_related(
+        "train", "route__source", "route__destination", "train__train_type"
+    ).prefetch_related(
+        Prefetch("crew", to_attr="prefetched_crew"),
+        Prefetch(
+            "tickets",
+            queryset=Ticket.objects.only("id", "cargo", "seat"),
+            to_attr="prefetched_tickets",
+        ),
+    )
 
     def get_serializer_class(self):
         if self.action == "list":
@@ -53,7 +71,11 @@ class TripViewSet(viewsets.ModelViewSet):
 
     @staticmethod
     def _param_to_str(query_string):
-        return [s.strip() for s in query_string.split(",") if s.strip()]
+        return [
+            str_param.strip()
+            for str_param in query_string.split(",")
+            if str_param.strip()
+        ]
 
     @staticmethod
     def _param_to_date(query_string):
@@ -68,16 +90,28 @@ class TripViewSet(viewsets.ModelViewSet):
 
         if source:
             queryset = queryset.filter(route__source__name__icontains=source.strip())
-
         if destination:
-            queryset = queryset.filter(route__destination__name__icontains=destination.strip())
-
+            queryset = queryset.filter(
+                route__destination__name__icontains=destination.strip()
+            )
         if date:
             date_parsed = self._param_to_date(date)
             if date_parsed:
                 queryset = queryset.filter(departure_time__date=date_parsed)
 
-        return queryset.order_by("departure_time")
+        if self.action == "list":
+            queryset = queryset.annotate(
+                total_seats=F("train__cargo_num") * F("train__places_in_cargo"),
+                tickets_count=Count("tickets"),
+                tickets_available=(
+                    F("train__cargo_num") * F("train__places_in_cargo")
+                    - Count("tickets")
+                ),
+            ).order_by("departure_time")
+        else:
+            queryset = queryset.order_by("departure_time")
+
+        return queryset
 
 
 class TrainTypeViewSet(viewsets.ModelViewSet):
@@ -86,8 +120,15 @@ class TrainTypeViewSet(viewsets.ModelViewSet):
 
 
 class TrainViewSet(viewsets.ModelViewSet):
-    queryset = Train.objects.all()
+    queryset = Train.objects.select_related("train_type")
     serializer_class = TrainSerializer
+
+    def get_serializer_class(self):
+        if self.action == "list":
+            return TrainListSerializer
+        elif self.action == "retrieve":
+            return TrainRetrieveSerializer
+        return TrainSerializer
 
 
 class OrderViewSet(viewsets.ModelViewSet):
@@ -99,8 +140,3 @@ class OrderViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
-
-
-class TicketViewSet(viewsets.ModelViewSet):
-    queryset = Ticket.objects.all()
-    serializer_class = TicketSerializer

@@ -1,15 +1,6 @@
 from django.db import transaction
 from rest_framework import serializers
-from railway.models import (
-    Station,
-    Route,
-    Crew,
-    Trip,
-    TrainType,
-    Train,
-    Order,
-    Ticket
-)
+from railway.models import Station, Route, Crew, Trip, TrainType, Train, Order, Ticket
 
 
 class StationSerializer(serializers.ModelSerializer):
@@ -18,7 +9,37 @@ class StationSerializer(serializers.ModelSerializer):
         fields = ("id", "name", "latitude", "longitude")
 
 
+class StationListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Station
+        fields = ("id", "name")
+
+
+class StationRetrieveSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Station
+        fields = ("id", "name", "latitude", "longitude")
+
+
 class RouteSerializer(serializers.ModelSerializer):
+    source = StationSerializer(read_only=True)
+    destination = StationSerializer(read_only=True)
+
+    class Meta:
+        model = Route
+        fields = ["id", "source", "destination", "distance"]
+
+
+class RouteListSerializer(serializers.ModelSerializer):
+    source = serializers.StringRelatedField(read_only=True)
+    destination = serializers.StringRelatedField(read_only=True)
+
+    class Meta:
+        model = Route
+        fields = ["id", "source", "destination", "distance"]
+
+
+class RouteRetrieveSerializer(serializers.ModelSerializer):
     source = StationSerializer(read_only=True)
     destination = StationSerializer(read_only=True)
 
@@ -44,7 +65,44 @@ class TrainSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Train
-        fields = ("id", "name", "cargo_num", "places_in_cargo", "train_type", "capacity")
+        fields = (
+            "id",
+            "name",
+            "cargo_num",
+            "places_in_cargo",
+            "train_type",
+            "capacity",
+        )
+
+
+class TrainListSerializer(serializers.ModelSerializer):
+    train_type = serializers.CharField(source="train_type.name", read_only=True)
+
+    class Meta:
+        model = Train
+        fields = (
+            "id",
+            "name",
+            "cargo_num",
+            "places_in_cargo",
+            "train_type",
+            "capacity",
+        )
+
+
+class TrainRetrieveSerializer(serializers.ModelSerializer):
+    train_type = TrainTypeSerializer(read_only=True)
+
+    class Meta:
+        model = Train
+        fields = (
+            "id",
+            "name",
+            "cargo_num",
+            "places_in_cargo",
+            "train_type",
+            "capacity",
+        )
 
 
 class TripSerializer(serializers.ModelSerializer):
@@ -54,23 +112,62 @@ class TripSerializer(serializers.ModelSerializer):
 
 
 class TripListSerializer(serializers.ModelSerializer):
+    source = serializers.CharField(source="route.source.name", read_only=True)
+    destination = serializers.CharField(source="route.destination.name", read_only=True)
     train_name = serializers.CharField(source="train.name", read_only=True)
-    train_capacity = serializers.IntegerField(source="train.capacity", read_only=True)
-    route_name = serializers.CharField(source="route", read_only=True)
+    train_type = serializers.CharField(source="train.train_type.name", read_only=True)
+    total_seats = serializers.IntegerField(read_only=True)
+    tickets_available = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = Trip
-        fields = ("id", "route_name", "departure_time", "arrival_time", "train_name", "train_capacity")
+        fields = (
+            "id",
+            "source",
+            "destination",
+            "departure_time",
+            "arrival_time",
+            "train_name",
+            "train_type",
+            "total_seats",
+            "tickets_available",
+        )
 
 
-class TripRetrieveSerializer(TripSerializer):
-    train = TrainSerializer(read_only=True)
-    route = RouteSerializer(read_only=True)
-    crew = CrewSerializer(many=True, read_only=True)
+class TripRetrieveSerializer(serializers.ModelSerializer):
+    train = serializers.CharField(source="train.name", read_only=True)
+    train_type = serializers.CharField(source="train.train_type.name", read_only=True)
+    total_seats = serializers.IntegerField(source="train.capacity", read_only=True)
+    taken_seats = serializers.SerializerMethodField()
+    crew = serializers.SerializerMethodField()
+    source = serializers.CharField(source="route.source.name", read_only=True)
+    destination = serializers.CharField(source="route.destination.name", read_only=True)
 
     class Meta:
         model = Trip
-        fields = ("id", "route", "train", "departure_time", "arrival_time", "crew")
+        fields = (
+            "id",
+            "source",
+            "destination",
+            "departure_time",
+            "arrival_time",
+            "train",
+            "train_type",
+            "total_seats",
+            "crew",
+            "taken_seats",
+        )
+
+    def get_crew(self, obj):
+        return [
+            crew_item.full_name for crew_item in getattr(obj, "prefetched_crew", [])
+        ]
+
+    def get_taken_seats(self, obj):
+        tickets = getattr(obj, "prefetched_tickets", None)
+        if tickets is not None:
+            return [{"cargo": ticket.cargo, "seat": ticket.seat} for ticket in tickets]
+        return list(obj.tickets.values("cargo", "seat"))
 
 
 class TicketSerializer(serializers.ModelSerializer):
@@ -86,11 +183,14 @@ class TicketSerializer(serializers.ModelSerializer):
         Ticket.validate_seat(attrs["seat"], train, serializers.ValidationError)
 
         if Ticket.objects.filter(
-                trip=trip, cargo=attrs["cargo"], seat=attrs["seat"]
+            trip=trip, cargo=attrs["cargo"], seat=attrs["seat"]
         ).exists():
-            raise serializers.ValidationError({
-                "seat": f"Seat {attrs['seat']} in cargo {attrs['cargo']} is already booked for this trip."
-            })
+            raise serializers.ValidationError(
+                {
+                    "seat": f"Seat {attrs['seat']} in cargo "
+                    f"{attrs['cargo']} is already booked for this trip."
+                }
+            )
 
         return attrs
 
