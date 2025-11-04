@@ -113,11 +113,12 @@ class Ticket(models.Model):
         Ticket.validate_seat(self.seat, train, ValidationError)
 
         if Ticket.objects.filter(
-            trip=self.trip, cargo=self.cargo, seat=self.seat
+                trip=self.trip, cargo=self.cargo, seat=self.seat
         ).exists():
             raise ValidationError(
                 {
-                    "seat": f"Seat {self.seat} in cargo {self.cargo} for this trip is already booked."
+                    "seat": f"Seat {self.seat} in cargo {self.cargo}"
+                            f" for this trip is already booked."
                 }
             )
 
