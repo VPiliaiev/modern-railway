@@ -183,12 +183,12 @@ class TicketSerializer(serializers.ModelSerializer):
         Ticket.validate_seat(attrs["seat"], train, serializers.ValidationError)
 
         if Ticket.objects.filter(
-            trip=trip, cargo=attrs["cargo"], seat=attrs["seat"]
+                trip=trip, cargo=attrs["cargo"], seat=attrs["seat"]
         ).exists():
             raise serializers.ValidationError(
                 {
                     "seat": f"Seat {attrs['seat']} in cargo "
-                    f"{attrs['cargo']} is already booked for this trip."
+                            f"{attrs['cargo']} is already booked for this trip."
                 }
             )
 
@@ -213,3 +213,11 @@ class OrderSerializer(serializers.ModelSerializer):
             for ticket_data in tickets_data:
                 Ticket.objects.create(order=order, **ticket_data)
             return order
+
+
+class TicketListSerializer(TicketSerializer):
+    trip = TripListSerializer(read_only=True)
+
+
+class OrderListSerializer(OrderSerializer):
+    tickets = TicketListSerializer(read_only=True, many=True)

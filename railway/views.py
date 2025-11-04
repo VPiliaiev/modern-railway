@@ -17,7 +17,7 @@ from railway.serializers import (
     StationRetrieveSerializer,
     StationListSerializer,
     RouteListSerializer,
-    RouteRetrieveSerializer,
+    RouteRetrieveSerializer, OrderListSerializer,
 )
 
 
@@ -104,8 +104,8 @@ class TripViewSet(viewsets.ModelViewSet):
                 total_seats=F("train__cargo_num") * F("train__places_in_cargo"),
                 tickets_count=Count("tickets"),
                 tickets_available=(
-                    F("train__cargo_num") * F("train__places_in_cargo")
-                    - Count("tickets")
+                        F("train__cargo_num") * F("train__places_in_cargo")
+                        - Count("tickets")
                 ),
             ).order_by("departure_time")
         else:
@@ -132,11 +132,30 @@ class TrainViewSet(viewsets.ModelViewSet):
 
 
 class OrderViewSet(viewsets.ModelViewSet):
-    queryset = Order.objects.all()
+    queryset = Order.objects
     serializer_class = OrderSerializer
 
     def get_queryset(self):
-        return self.queryset.filter(user=self.request.user)
+        queryset = self.queryset.filter(user=self.request.user)
+
+        if self.action == "list":
+            trip_queryset = Trip.objects.select_related(
+                "route__source",
+                "route__destination",
+                "train__train_type"
+            )
+            queryset = queryset.prefetch_related(
+                Prefetch("tickets__trip", queryset=trip_queryset)
+            )
+        return queryset
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+    def get_serializer_class(self):
+        serializer = self.serializer_class
+
+        if self.action == "list":
+            serializer = OrderListSerializer
+
+        return serializer
