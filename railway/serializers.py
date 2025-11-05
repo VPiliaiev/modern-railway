@@ -105,6 +105,12 @@ class TrainRetrieveSerializer(serializers.ModelSerializer):
         )
 
 
+class TrainImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Train
+        fields = ("id", "image")
+
+
 class TripSerializer(serializers.ModelSerializer):
     class Meta:
         model = Trip

@@ -2,6 +2,9 @@ from django.core.exceptions import ValidationError
 from django.db import models
 
 from modern_railway import settings
+import os
+import uuid
+from django.utils.text import slugify
 
 
 class Station(models.Model):
@@ -56,11 +59,19 @@ class TrainType(models.Model):
         return self.name
 
 
+def train_image_file_path(instance, filename):
+    _, extension = os.path.splitext(filename)
+    filename = f"{slugify(instance.name)}-{uuid.uuid4()}{extension}"
+
+    return os.path.join("uploads/trains/", filename)
+
+
 class Train(models.Model):
     name = models.CharField(max_length=64)
     cargo_num = models.IntegerField()
     places_in_cargo = models.IntegerField()
     train_type = models.ForeignKey(TrainType, on_delete=models.CASCADE)
+    image = models.ImageField(null=True, upload_to=train_image_file_path)
 
     def __str__(self):
         return f"{self.name} ({self.train_type})"

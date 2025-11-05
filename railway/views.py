@@ -1,6 +1,10 @@
 from django.db.models import Prefetch, Count, F
 from django.utils.dateparse import parse_date
-from rest_framework import viewsets
+from rest_framework import viewsets, status
+from rest_framework.decorators import action
+from rest_framework.permissions import IsAdminUser
+from rest_framework.response import Response
+
 from railway.models import (
     Station,
     Route,
@@ -27,7 +31,9 @@ from railway.serializers import (
     StationRetrieveSerializer,
     StationListSerializer,
     RouteListSerializer,
-    RouteRetrieveSerializer, OrderListSerializer,
+    RouteRetrieveSerializer,
+    OrderListSerializer,
+    TrainImageSerializer,
 )
 
 
@@ -143,7 +149,24 @@ class TrainViewSet(viewsets.ModelViewSet):
             return TrainListSerializer
         elif self.action == "retrieve":
             return TrainRetrieveSerializer
+        elif self.action == "upload_image":
+            return TrainImageSerializer
         return TrainSerializer
+
+    @action(
+        methods=["POST"],
+        detail=True,
+        permission_classes=[IsAdminUser],
+        url_path="upload-image"
+    )
+    def upload_image(self, request, pk=None):
+        train = self.get_object()
+        serializer = self.get_serializer(train, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class OrderViewSet(viewsets.ModelViewSet):
