@@ -4,6 +4,11 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
+from drf_spectacular.utils import (
+    extend_schema,
+    OpenApiParameter,
+    OpenApiTypes
+)
 
 from railway.models import (
     Station,
@@ -131,6 +136,31 @@ class TripViewSet(viewsets.ModelViewSet):
             queryset = queryset.order_by("departure_time")
 
         return queryset
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name="source",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="Filter trips by source station name (ex. ?source=London)",
+            ),
+            OpenApiParameter(
+                name="destination",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="Filter trips by destination station name (ex. ?destination=Paris)",
+            ),
+            OpenApiParameter(
+                name="date",
+                type=OpenApiTypes.DATE,
+                location=OpenApiParameter.QUERY,
+                description="Filter trips by departure date (ex. ?date=2025-01-01)",
+            ),
+        ]
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
 
 class TrainTypeViewSet(viewsets.ModelViewSet):
