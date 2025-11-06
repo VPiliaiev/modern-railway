@@ -1,6 +1,6 @@
 from django.db.models import Prefetch, Count, F
 from django.utils.dateparse import parse_date
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, mixins
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
@@ -42,7 +42,11 @@ from railway.serializers import (
 )
 
 
-class StationViewSet(viewsets.ModelViewSet):
+class StationViewSet(
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    viewsets.GenericViewSet
+):
     queryset = Station.objects.all()
     serializer_class = StationSerializer
     permission_classes = (IsAdminOrIfAuthenticatedReadOnly,)
@@ -55,7 +59,11 @@ class StationViewSet(viewsets.ModelViewSet):
         return StationSerializer
 
 
-class RouteViewSet(viewsets.ModelViewSet):
+class RouteViewSet(
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    viewsets.GenericViewSet
+):
     queryset = Route.objects.select_related("source", "destination")
     serializer_class = RouteSerializer
     permission_classes = (IsAdminOrIfAuthenticatedReadOnly,)
