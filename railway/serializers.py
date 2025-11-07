@@ -1,6 +1,15 @@
 from django.db import transaction
 from rest_framework import serializers
-from railway.models import Station, Route, Crew, Trip, TrainType, Train, Order, Ticket
+from railway.models import (
+    Station,
+    Route,
+    Crew,
+    Trip,
+    TrainType,
+    Train,
+    Order,
+    Ticket
+)
 
 
 class StationSerializer(serializers.ModelSerializer):
@@ -61,8 +70,6 @@ class TrainTypeSerializer(serializers.ModelSerializer):
 
 
 class TrainSerializer(serializers.ModelSerializer):
-    train_type = TrainTypeSerializer(read_only=True)
-
     class Meta:
         model = Train
         fields = (
@@ -87,6 +94,7 @@ class TrainListSerializer(serializers.ModelSerializer):
             "places_in_cargo",
             "train_type",
             "capacity",
+            "image",
         )
 
 
@@ -102,6 +110,7 @@ class TrainRetrieveSerializer(serializers.ModelSerializer):
             "places_in_cargo",
             "train_type",
             "capacity",
+            "image",
         )
 
 
@@ -115,6 +124,14 @@ class TripSerializer(serializers.ModelSerializer):
     class Meta:
         model = Trip
         fields = ("id", "route", "train", "departure_time", "arrival_time")
+
+    def validate(self, attrs):
+        Trip.validate_times(
+            attrs["departure_time"],
+            attrs["arrival_time"],
+            serializers.ValidationError
+        )
+        return attrs
 
 
 class TripListSerializer(serializers.ModelSerializer):

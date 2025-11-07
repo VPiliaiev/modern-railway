@@ -51,6 +51,25 @@ class Trip(models.Model):
     def __str__(self):
         return f"{self.route} ({self.departure_time:%Y-%m-%d %H:%M})"
 
+    @staticmethod
+    def validate_times(departure_time, arrival_time, error_to_raise):
+        if arrival_time <= departure_time:
+            raise error_to_raise(
+                {"arrival_time": "Arrival time must be later than departure time."}
+            )
+
+    def clean(self):
+        super().clean()
+        Trip.validate_times(
+            self.departure_time,
+            self.arrival_time,
+            ValidationError
+        )
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
 
 class TrainType(models.Model):
     name = models.CharField(max_length=64)
