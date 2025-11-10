@@ -60,7 +60,7 @@ class RouteRetrieveSerializer(serializers.ModelSerializer):
 class CrewSerializer(serializers.ModelSerializer):
     class Meta:
         model = Crew
-        fields = ("id", "first_name", "last_name", "full_name")
+        fields = ("id", "first_name", "last_name", "full_name", "position")
 
 
 class TrainTypeSerializer(serializers.ModelSerializer):
