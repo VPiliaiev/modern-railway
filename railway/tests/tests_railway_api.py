@@ -9,14 +9,7 @@ import tempfile
 import os
 
 from PIL import Image
-from railway.models import (
-    Station,
-    Route,
-    TrainType,
-    Train,
-    Crew,
-    Trip
-)
+from railway.models import Station, Route, TrainType, Train, Crew, Trip
 
 STATION_URL = reverse("railway:station-list")
 ROUTE_URL = reverse("railway:route-list")
@@ -102,8 +95,7 @@ class AuthenticatedRailwayApiTests(TestCase):
     def setUp(self):
         self.client = APIClient()
         self.user = get_user_model().objects.create_user(
-            email="test@gmail.com",
-            password="Test12345"
+            email="test@gmail.com", password="Test12345"
         )
         self.client.force_authenticate(self.user)
 
@@ -119,20 +111,35 @@ class AuthenticatedRailwayApiTests(TestCase):
 
         first_trip = res.data["results"][0]
 
-        for key in ["id", "source", "destination", "departure_time", "arrival_time", "train_name", "train_type",
-                    "total_seats", "tickets_available"]:
+        for key in [
+            "id",
+            "source",
+            "destination",
+            "departure_time",
+            "arrival_time",
+            "train_name",
+            "train_type",
+            "total_seats",
+            "tickets_available",
+        ]:
             self.assertIn(key, first_trip)
 
         expected_total = 9 * 50
         self.assertEqual(first_trip["total_seats"], expected_total)
 
     def test_filter_trip_by_source(self):
-        kyiv_trip = sample_trip(route=sample_route(
-            source=sample_station(name="Kyiv"), destination=sample_station(name="Lviv")
-        ))
-        sample_trip(route=sample_route(
-            source=sample_station(name="Odesa"), destination=sample_station(name="Kharkiv")
-        ))
+        kyiv_trip = sample_trip(
+            route=sample_route(
+                source=sample_station(name="Kyiv"),
+                destination=sample_station(name="Lviv"),
+            )
+        )
+        sample_trip(
+            route=sample_route(
+                source=sample_station(name="Odesa"),
+                destination=sample_station(name="Kharkiv"),
+            )
+        )
 
         res = self.client.get(TRIP_URL, {"source": "Kyiv"})
 
@@ -141,12 +148,18 @@ class AuthenticatedRailwayApiTests(TestCase):
         self.assertEqual(res.data["results"][0]["id"], kyiv_trip.id)
 
     def test_filter_trip_by_destination(self):
-        lviv_trip = sample_trip(route=sample_route(
-            source=sample_station(name="Kyiv"), destination=sample_station(name="Lviv")
-        ))
-        sample_trip(route=sample_route(
-            source=sample_station(name="Kharkiv"), destination=sample_station(name="Odesa")
-        ))
+        lviv_trip = sample_trip(
+            route=sample_route(
+                source=sample_station(name="Kyiv"),
+                destination=sample_station(name="Lviv"),
+            )
+        )
+        sample_trip(
+            route=sample_route(
+                source=sample_station(name="Kharkiv"),
+                destination=sample_station(name="Odesa"),
+            )
+        )
 
         res = self.client.get(TRIP_URL, {"destination": "Lviv"})
 
@@ -182,7 +195,10 @@ class AuthenticatedRailwayApiTests(TestCase):
 
     def test_list_routes(self):
         sample_route()
-        sample_route(source=sample_station(name="Odesa"), destination=sample_station(name="Kharkiv"))
+        sample_route(
+            source=sample_station(name="Odesa"),
+            destination=sample_station(name="Kharkiv"),
+        )
 
         res = self.client.get(ROUTE_URL)
         self.assertEqual(res.status_code, status.HTTP_200_OK)
@@ -276,19 +292,18 @@ class AdminRailwayApiTests(TestCase):
         )
         self.client.force_authenticate(self.user)
 
-        self.station1 = Station.objects.create(name="Kyiv", latitude=50.45, longitude=30.52)
-        self.station2 = Station.objects.create(name="Lviv", latitude=49.84, longitude=24.03)
+        self.station1 = Station.objects.create(
+            name="Kyiv", latitude=50.45, longitude=30.52
+        )
+        self.station2 = Station.objects.create(
+            name="Lviv", latitude=49.84, longitude=24.03
+        )
         self.route = Route.objects.create(
-            source=self.station1,
-            destination=self.station2,
-            distance=540
+            source=self.station1, destination=self.station2, distance=540
         )
         self.train_type = TrainType.objects.create(name="Intercity+")
         self.train = Train.objects.create(
-            name="Hyundai",
-            cargo_num=5,
-            places_in_cargo=20,
-            train_type=self.train_type
+            name="Hyundai", cargo_num=5, places_in_cargo=20, train_type=self.train_type
         )
 
     def test_create_train_type(self):

@@ -1,15 +1,6 @@
 from django.db import transaction
 from rest_framework import serializers
-from railway.models import (
-    Station,
-    Route,
-    Crew,
-    Trip,
-    TrainType,
-    Train,
-    Order,
-    Ticket
-)
+from railway.models import Station, Route, Crew, Trip, TrainType, Train, Order, Ticket
 
 
 class StationSerializer(serializers.ModelSerializer):
@@ -127,9 +118,7 @@ class TripSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         Trip.validate_times(
-            attrs["departure_time"],
-            attrs["arrival_time"],
-            serializers.ValidationError
+            attrs["departure_time"], attrs["arrival_time"], serializers.ValidationError
         )
         return attrs
 
@@ -206,12 +195,12 @@ class TicketSerializer(serializers.ModelSerializer):
         Ticket.validate_seat(attrs["seat"], train, serializers.ValidationError)
 
         if Ticket.objects.filter(
-                trip=trip, cargo=attrs["cargo"], seat=attrs["seat"]
+            trip=trip, cargo=attrs["cargo"], seat=attrs["seat"]
         ).exists():
             raise serializers.ValidationError(
                 {
                     "seat": f"Seat {attrs['seat']} in cargo "
-                            f"{attrs['cargo']} is already booked for this trip."
+                    f"{attrs['cargo']} is already booked for this trip."
                 }
             )
 

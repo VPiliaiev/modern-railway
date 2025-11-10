@@ -61,11 +61,7 @@ class Trip(models.Model):
 
     def clean(self):
         super().clean()
-        Trip.validate_times(
-            self.departure_time,
-            self.arrival_time,
-            ValidationError
-        )
+        Trip.validate_times(self.departure_time, self.arrival_time, ValidationError)
 
     def save(self, *args, **kwargs):
         self.full_clean()
@@ -144,12 +140,12 @@ class Ticket(models.Model):
         Ticket.validate_seat(self.seat, train, ValidationError)
 
         if Ticket.objects.filter(
-                trip=self.trip, cargo=self.cargo, seat=self.seat
+            trip=self.trip, cargo=self.cargo, seat=self.seat
         ).exists():
             raise ValidationError(
                 {
                     "seat": f"Seat {self.seat} in cargo {self.cargo}"
-                            f" for this trip is already booked."
+                    f" for this trip is already booked."
                 }
             )
 

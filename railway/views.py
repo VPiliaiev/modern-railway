@@ -4,22 +4,9 @@ from rest_framework import viewsets, status, mixins
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
-from drf_spectacular.utils import (
-    extend_schema,
-    OpenApiParameter,
-    OpenApiTypes
-)
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes
 
-from railway.models import (
-    Station,
-    Route,
-    Crew,
-    Trip,
-    TrainType,
-    Train,
-    Order,
-    Ticket
-)
+from railway.models import Station, Route, Crew, Trip, TrainType, Train, Order, Ticket
 from railway.permissions import IsAdminOrIfAuthenticatedReadOnly
 from railway.serializers import (
     StationSerializer,
@@ -43,9 +30,7 @@ from railway.serializers import (
 
 
 class StationViewSet(
-    mixins.ListModelMixin,
-    mixins.RetrieveModelMixin,
-    viewsets.GenericViewSet
+    mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet
 ):
     queryset = Station.objects.all()
     serializer_class = StationSerializer
@@ -60,9 +45,7 @@ class StationViewSet(
 
 
 class RouteViewSet(
-    mixins.ListModelMixin,
-    mixins.RetrieveModelMixin,
-    viewsets.GenericViewSet
+    mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet
 ):
     queryset = Route.objects.select_related("source", "destination")
     serializer_class = RouteSerializer
@@ -136,8 +119,8 @@ class TripViewSet(viewsets.ModelViewSet):
                 total_seats=F("train__cargo_num") * F("train__places_in_cargo"),
                 tickets_count=Count("tickets"),
                 tickets_available=(
-                        F("train__cargo_num") * F("train__places_in_cargo")
-                        - Count("tickets")
+                    F("train__cargo_num") * F("train__places_in_cargo")
+                    - Count("tickets")
                 ),
             ).order_by("departure_time")
         else:
@@ -195,7 +178,7 @@ class TrainViewSet(viewsets.ModelViewSet):
         methods=["POST"],
         detail=True,
         permission_classes=[IsAdminUser],
-        url_path="upload-image"
+        url_path="upload-image",
     )
     def upload_image(self, request, pk=None):
         train = self.get_object()
@@ -217,9 +200,7 @@ class OrderViewSet(viewsets.ModelViewSet):
 
         if self.action == "list":
             trip_queryset = Trip.objects.select_related(
-                "route__source",
-                "route__destination",
-                "train__train_type"
+                "route__source", "route__destination", "train__train_type"
             )
             queryset = queryset.prefetch_related(
                 Prefetch("tickets__trip", queryset=trip_queryset)
